@@ -1,109 +1,122 @@
-// src/pages/AdminDashboard/pages/AdminLogin.jsx
+// admin-frontend/src/AdminDashboard/pages/AdminLogin.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from "../../supabaseClient";
+import { supabase } from '../../supabaseClient';
 
 const ADMIN_PRIMARY = "#dc3545";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    verificarSeJaEstaLogado();
-  }, []);
-
-  const verificarSeJaEstaLogado = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        // Verificar se é admin
-        const admins = [
-          'comprasmartconsult@gmail.com',
-          'agnes@comprasmart.com',
-          // Adicione mais emails admin aqui
-        ];
-
-        if (admins.includes(user.email)) {
-          navigate('/admin/dashboard');
-        } else {
-          setError('Você não tem permissão de administrador.');
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar autenticação:', error);
-    }
-  };
-
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Fazer login com Google
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/admin/callback`,
-        },
+      // Login via Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
       if (error) throw error;
 
+      // Verificar se é admin
+      const userRole = data.user?.user_metadata?.role;
+      
+      if (userRole !== 'admin') {
+        await supabase.auth.signOut();
+        throw new Error('❌ Acesso negado! Apenas administradores.');
+      }
+
+      // Salvar token e redirecionar
+      localStorage.setItem('adminToken', data.session.access_token);
+      navigate('/dashboard');
+
     } catch (error) {
       console.error('Erro no login:', error);
-      setError('Erro ao fazer login. Tente novamente.');
+      setError(error.message || 'Erro ao fazer login');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.logoContainer}>
-          <div style={styles.logoIcon}>🔧</div>
-          <h2 style={styles.title}>Painel Administrativo</h2>
+      <div style={styles.loginBox}>
+        <div style={styles.header}>
+          <div style={styles.iconContainer}>
+            <span style={styles.icon}>🛒</span>
+          </div>
+          <h1 style={styles.title}>Painel Administrativo</h1>
           <p style={styles.subtitle}>CompraSmart</p>
         </div>
 
-        <div style={styles.warningBox}>
-          <p style={styles.warningText}>
-            <strong>⚠️ Acesso Restrito</strong><br />
+        <div style={styles.alert}>
+          <span style={styles.alertIcon}>⚠️</span>
+          <div>
+            <strong>Acesso Restrito</strong>
+            <br />
             Esta área é exclusiva para administradores do sistema.
-          </p>
-        </div>
-
-        {error && (
-          <div style={styles.errorBox}>
-            <p style={styles.errorText}>❌ {error}</p>
           </div>
-        )}
-
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          style={{
-            ...styles.loginButton,
-            backgroundColor: loading ? '#6c757d' : ADMIN_PRIMARY,
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? '🔄 Redirecionando...' : '🔑 Entrar com Google'}
-        </button>
-
-        <div style={styles.info}>
-          <p style={styles.infoText}>
-            ℹ️ Apenas emails autorizados podem acessar esta área.
-          </p>
         </div>
+
+        <form onSubmit={handleLogin} style={styles.form}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              required
+              style={styles.input}
+              disabled={loading}
+            />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Senha</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              style={styles.input}
+              disabled={loading}
+            />
+          </div>
+
+          {error && (
+            <div style={styles.errorAlert}>
+              ❌ {error}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            style={{
+              ...styles.submitButton,
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
+            disabled={loading}
+          >
+            {loading ? '⏳ Entrando...' : '🔐 Entrar'}
+          </button>
+        </form>
 
         <div style={styles.footer}>
-          <a href="/" style={styles.backLink}>
-            ← Voltar para Home
-          </a>
+          <p style={styles.footerText}>
+            ℹ️ Apenas emails autorizados podem acessar esta área.
+          </p>
         </div>
       </div>
     </div>
@@ -113,28 +126,29 @@ const AdminLogin = () => {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: '#f8f9fa',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
     padding: '20px',
-    fontFamily: 'Arial, sans-serif',
   },
-  card: {
+  loginBox: {
     backgroundColor: 'white',
+    borderRadius: '16px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
     padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
     maxWidth: '450px',
     width: '100%',
   },
-  logoContainer: {
+  header: {
     textAlign: 'center',
     marginBottom: '30px',
   },
-  logoIcon: {
+  iconContainer: {
+    marginBottom: '20px',
+  },
+  icon: {
     fontSize: '4rem',
-    marginBottom: '15px',
   },
   title: {
     fontSize: '1.8rem',
@@ -143,70 +157,77 @@ const styles = {
     margin: '0 0 8px 0',
   },
   subtitle: {
-    fontSize: '1rem',
+    fontSize: '1.1rem',
     color: '#666',
     margin: 0,
   },
-  warningBox: {
+  alert: {
     backgroundColor: '#fff3cd',
-    padding: '15px',
+    border: '1px solid #ffeaa7',
     borderRadius: '8px',
-    marginBottom: '20px',
-    border: '1px solid #ffc107',
-  },
-  warningText: {
-    margin: 0,
-    fontSize: '14px',
+    padding: '15px',
+    marginBottom: '25px',
+    display: 'flex',
+    gap: '12px',
+    fontSize: '0.9rem',
     color: '#856404',
-    textAlign: 'center',
-    lineHeight: '1.6',
   },
-  errorBox: {
-    backgroundColor: '#f8d7da',
-    padding: '15px',
-    borderRadius: '8px',
+  alertIcon: {
+    fontSize: '1.2rem',
+  },
+  form: {
     marginBottom: '20px',
-    border: '1px solid #dc3545',
   },
-  errorText: {
-    margin: 0,
-    fontSize: '14px',
-    color: '#721c24',
-    textAlign: 'center',
+  formGroup: {
+    marginBottom: '20px',
   },
-  loginButton: {
+  label: {
+    display: 'block',
+    marginBottom: '8px',
+    fontWeight: '600',
+    color: '#333',
+    fontSize: '0.95rem',
+  },
+  input: {
     width: '100%',
-    padding: '15px',
+    padding: '12px 16px',
+    border: '2px solid #e9ecef',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.2s',
+    outline: 'none',
+  },
+  errorAlert: {
+    backgroundColor: '#f8d7da',
+    border: '1px solid #f5c6cb',
+    color: '#721c24',
+    padding: '12px',
+    borderRadius: '8px',
+    marginBottom: '15px',
+    fontSize: '0.9rem',
+  },
+  submitButton: {
+    width: '100%',
+    padding: '14px',
+    backgroundColor: ADMIN_PRIMARY,
     color: 'white',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '1rem',
+    fontSize: '1.1rem',
     fontWeight: '600',
-    transition: 'all 0.3s',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-  },
-  info: {
-    marginTop: '20px',
-    padding: '15px',
-    backgroundColor: '#e7f3ff',
-    borderRadius: '8px',
-    border: '1px solid #b3d9ff',
-  },
-  infoText: {
-    margin: 0,
-    fontSize: '13px',
-    color: '#004085',
-    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
   },
   footer: {
     textAlign: 'center',
-    marginTop: '25px',
+    paddingTop: '20px',
+    borderTop: '1px solid #e9ecef',
   },
-  backLink: {
-    color: '#2c5aa0',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '500',
+  footerText: {
+    fontSize: '0.85rem',
+    color: '#666',
+    margin: 0,
   },
 };
 

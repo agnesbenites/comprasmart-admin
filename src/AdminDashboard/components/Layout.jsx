@@ -4,7 +4,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FaHome, FaStore, FaChartBar, FaDollarSign, FaBullhorn,
-  FaBook, FaCalendar, FaTasks, FaSignOutAlt 
+  FaBook, FaCalendar, FaTasks, FaSignOutAlt, FaUserShield 
 } from 'react-icons/fa';
 
 const ADMIN_PRIMARY = "#dc3545";
@@ -22,6 +22,7 @@ const Layout = ({ children }) => {
     { path: '/relatorios', icon: <FaChartBar />, label: 'Relatórios' },
     { path: '/roadmap', icon: <FaCalendar />, label: 'Roadmap' },
     { path: '/gerenciar-roadmap', icon: <FaTasks />, label: 'Gerenciar Roadmap' },
+    { path: '/usuarios', icon: <FaUserShield />, label: 'Usuários Admin' },
   ];
 
   const handleLogout = () => {

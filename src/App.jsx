@@ -15,6 +15,7 @@ import AdminGerenciarRoadmap from './AdminDashboard/pages/AdminGerenciarRoadmap'
 import AdminMetricasClientes from './AdminDashboard/pages/AdminMetricasClientes';
 import AdminMetricasLojistas from './AdminDashboard/pages/AdminMetricasLojistas';
 import AdminMetricasConsultores from './AdminDashboard/pages/AdminMetricasConsultores';
+import AdminUsuarios from './AdminDashboard/pages/AdminUsuarios';
 import './App.css';
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
         {/* Outras */}
         <Route path="/notificacoes" element={<Layout><AdminNotificacoes /></Layout>} />
         <Route path="/configuracoes" element={<Layout><AdminConfiguracoes /></Layout>} />
+        <Route path="/usuarios" element={<Layout><AdminUsuarios /></Layout>} />
       </Routes>
     </Router>
   );
